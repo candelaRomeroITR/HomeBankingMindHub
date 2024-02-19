@@ -48,6 +48,57 @@
 
                 }
             }
+
+            if (!context.Transactions.Any())
+            {
+                var account1 = context.Account.FirstOrDefault(cliente => cliente.Number == "VIN001");
+                var account2 = context.Account.FirstOrDefault(cliente => cliente.Number == "VIN002");
+                var account3 = context.Account.FirstOrDefault(cliente => cliente.Number == "VIN003");
+                var account4 = context.Account.FirstOrDefault(cliente => cliente.Number == "VIN004");
+                var account5 = context.Account.FirstOrDefault(cliente => cliente.Number == "VIN005");
+                var account6 = context.Account.FirstOrDefault(cliente => cliente.Number == "VIN006");
+
+                if (account1 != null && account2 != null && account3 != null && account4 != null && account5 != null && account6 != null)
+                {
+
+                    var transactions = new Transaction[]
+                    {
+                        new Transaction { AccountId= account1.Id, Amount = 10000, Date= DateTime.Now.AddHours(-5), Description = "Transferencia recibida", Type = TransactionType.CREDIT },
+
+                        new Transaction { AccountId= account1.Id, Amount = -2000, Date= DateTime.Now.AddHours(-6), Description = "Compra en tienda mercado libre", Type = TransactionType.DEBIT },
+
+                        new Transaction { AccountId= account1.Id, Amount = -3000, Date= DateTime.Now.AddHours(-7), Description = "Compra en tienda xxxx", Type = TransactionType.DEBIT },
+
+                        new Transaction { AccountId= account2.Id, Amount = 30000, Date= DateTime.Now.AddHours(-10), Description = "Transferencia recibida", Type = TransactionType.CREDIT },
+
+                        new Transaction { AccountId= account2.Id, Amount = -10000, Date= DateTime.Now.AddHours(-9), Description = "Compra en tienda xxxx", Type = TransactionType.DEBIT },
+
+                        new Transaction { AccountId= account3.Id, Amount = 7000, Date= DateTime.Now.AddHours(-2), Description = "Transferencia recibida", Type = TransactionType.CREDIT },
+
+                        new Transaction { AccountId= account3.Id, Amount = -3000, Date= DateTime.Now, Description = "Compra en tienda xxxx", Type = TransactionType.DEBIT },
+
+                        new Transaction { AccountId= account4.Id, Amount = 15000, Date= DateTime.Now.AddHours(-4), Description = "Transferencia recibida", Type = TransactionType.DEBIT },
+
+                        new Transaction { AccountId= account4.Id, Amount = -4000, Date= DateTime.Now.AddHours(-2), Description = "Compra en tienda xxxx", Type = TransactionType.DEBIT },
+
+                        new Transaction { AccountId= account5.Id, Amount = 10000, Date= DateTime.Now.AddHours(-2), Description = "Transferencia recibida", Type = TransactionType.CREDIT },
+
+                        new Transaction { AccountId= account5.Id, Amount = -5000, Date= DateTime.Now.AddHours(-1), Description = "Compra en tienda xxxx", Type = TransactionType.DEBIT },
+
+                        new Transaction { AccountId= account6.Id, Amount = 11000, Date= DateTime.Now, Description = "Compra en tienda xxxx", Type = TransactionType.DEBIT },
+
+                    };
+
+                    foreach (Transaction transaction in transactions)
+
+                    {
+                        context.Transactions.Add(transaction);
+                    }
+
+                    context.SaveChanges();
+                }
+
+            }
         }
     }
 }
