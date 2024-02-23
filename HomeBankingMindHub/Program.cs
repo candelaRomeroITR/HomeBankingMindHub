@@ -1,5 +1,6 @@
 using HomeBankingMindHub.Models;
 using HomeBankingMindHub.Repositories;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 using System.Text.Json.Serialization;
@@ -22,6 +23,21 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new OpenApiInfo { Title = "HomeBankingMindHub API", Version = "v1" });
+});
+
+//autenticación
+builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+      .AddCookie(options =>
+      {
+          options.ExpireTimeSpan = TimeSpan.FromMinutes(10);
+          options.LoginPath = new PathString("/index.html");
+      });
+
+//autorización
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("ClientOnly", policy => policy.RequireClaim("Client"));
+    options.AddPolicy("AdminOnly", policy => policy.RequireClaim("Admin"));
 });
 
 var app = builder.Build();
@@ -52,7 +68,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI(options =>
     {
         options.SwaggerEndpoint("/swagger/v1/swagger.json", "v1");
-        options.RoutePrefix = string.Empty;
+       // options.RoutePrefix = string.Empty;
     });
 }
 else
@@ -65,6 +81,8 @@ app.UseDefaultFiles();
 app.UseStaticFiles();
 
 app.UseRouting();
+
+app.UseAuthentication();
 
 app.UseAuthorization();
 
