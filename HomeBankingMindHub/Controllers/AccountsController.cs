@@ -14,6 +14,7 @@ using System.Collections.Generic;
 
 using System.Linq;
 using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
 
 namespace HomeBankingMindHub.Controllers
 {
@@ -32,6 +33,7 @@ namespace HomeBankingMindHub.Controllers
 
         [HttpGet]
 
+        [Authorize(Policy="AdminOnly")]
         public IActionResult Get()
 
         {
@@ -107,7 +109,7 @@ namespace HomeBankingMindHub.Controllers
         }
 
         [HttpGet("{id}")]
-
+        [Authorize(Policy = "ClientOnly")]
         public IActionResult Get(long id)
 
         {

@@ -45,20 +45,12 @@ namespace HomeBankingMindHub.Controllers
         [HttpGet]
         [Authorize(Policy = "ClientOnly")]
         public IActionResult Get()
-
         {
-
             try
-
             {
-
                 var clients = _clientRepository.GetAllClients();
 
-
-
                 var clientsDTO = new List<ClientDTO>();
-
-
 
                 foreach (Client client in clients)
 
@@ -274,23 +266,23 @@ namespace HomeBankingMindHub.Controllers
                 {
                     return StatusCode(403, "email inválido");
                 } 
-                else if (String.IsNullOrEmpty(client.Password))
+                if (String.IsNullOrEmpty(client.Password))
                 {
                     return StatusCode(403, "contraseña inválida");
                 }
-                else if (String.IsNullOrEmpty(client.FirstName))
+                if (String.IsNullOrEmpty(client.FirstName))
                 {
                     return StatusCode(403, "Nombre inválido");
                 }
-                else if (String.IsNullOrEmpty(client.LastName))
+                if (String.IsNullOrEmpty(client.LastName))
                 {
                     return StatusCode(403, "Apellido inválido");
                 }
 
                 //buscamos si ya existe el usuario
-                Client user = _clientRepository.FindByEmail(client.Email);
+                //Client user = _clientRepository.FindByEmail(client.Email);
 
-                if (user != null)
+                if (_clientRepository.ExistsByEmail(client.Email))
                 {
                     return StatusCode(403, "Email está en uso");
                 }

@@ -46,6 +46,12 @@ namespace HomeBankingMindHub.Repositories
                 .Include(client => client.Cards)
                 .FirstOrDefault();
         }
+
+        public bool ExistsByEmail(string email)
+        {
+            return FindByCondition(client => client.Email == email).Any();
+        }
+
     }
 }
 
