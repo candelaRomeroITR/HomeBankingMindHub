@@ -34,7 +34,8 @@ namespace HomeBankingMindHub.Controllers
 
                 var claims = new List<Claim>
                 { 
-                    user.Email.Contains("@admin") ? new Claim("Admin", user.Email) : new Claim("Client", user.Email), new Claim("Id", user.Id.ToString())
+                 user.Email.Contains("@admin") ? new Claim("Admin", user.Email) : new Claim("Client", user.Email), new Claim("Id", user.Id.ToString())
+
                 };
 
                 var claimsIdentity = new ClaimsIdentity(

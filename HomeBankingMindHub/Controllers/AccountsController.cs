@@ -107,21 +107,23 @@ namespace HomeBankingMindHub.Controllers
         }
 
         [HttpGet("{id}")]
-        // verificar que la cuenta que solicito pertenezca al cliente autenticado
+
         public IActionResult Get(long id)
 
         {
-
+              
             try
 
             {
 
                 var account = _accountRepository.FindById(id);
 
-                var idClienteAutenticado = User.FindFirst("Id")?.Value;
-                Console.WriteLine("el id autenticado es ", idClienteAutenticado);
+                if (account.ClientId.ToString() != User.FindFirst("Id").Value)
+                {
+                    return Unauthorized();
+                }
 
-                if (account == null || !idClienteAutenticado.Equals(id))
+                if (account == null)
 
                 {
 
