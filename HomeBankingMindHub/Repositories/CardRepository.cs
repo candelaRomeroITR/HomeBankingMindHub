@@ -13,15 +13,16 @@ namespace HomeBankingMindHub.Repositories
         {
             return FindAll().ToList();
         }
-        public void Save(Card card)
-        {
-            Create(card);
-            SaveChanges();
-        }
 
         public bool ExistsByCardHolder(string cardHolder)
         {
             return FindByCondition(card => card.CardHolder == cardHolder).Any();
+        }
+        
+        public void Save(Card card)
+        {
+            Create(card);
+            SaveChanges();
         }
     }
 }

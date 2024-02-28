@@ -2,7 +2,7 @@
 {
     public class CardCreateDTO
     {
-        public string Type { get; set; }
-        public string Color { get; set; }
+        public string type { get; set; }
+        public string color { get; set; }
     }
 }

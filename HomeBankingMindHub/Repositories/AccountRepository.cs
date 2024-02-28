@@ -29,5 +29,10 @@ namespace HomeBankingMindHub.Repositories
             SaveChanges();
         }
 
+        public bool ExistsByNumber(string number)
+        {
+            return FindByCondition(client => client.Number == number).Any();
+        }
+
     }
 }

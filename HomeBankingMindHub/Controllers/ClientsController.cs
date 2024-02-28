@@ -17,14 +17,16 @@ namespace HomeBankingMindHub.Controllers
 
         private IClientRepository _clientRepository;
         private ICardRepository _cardRepository;
-        public ClientsController(IClientRepository clientRepository, ICardRepository cardRepository)
+        private IAccountRepository _accountRepository;
+        public ClientsController(IClientRepository clientRepository, ICardRepository cardRepository, IAccountRepository accountRepository)
         {
             _clientRepository = clientRepository;
             _cardRepository = cardRepository;
+            _accountRepository = accountRepository;
         }
      
         [HttpGet]
-        [Authorize(Policy = "ClientOnly")]
+      //  [Authorize(Policy = "ClientOnly")]
         public IActionResult Get()
         {
             try
@@ -89,7 +91,7 @@ namespace HomeBankingMindHub.Controllers
 
 
         [HttpGet("{id}")]
-        [Authorize(Policy = "ClientOnly")]
+       // [Authorize(Policy = "ClientOnly")]
         public IActionResult Get(long id)
         {
             try
@@ -159,7 +161,7 @@ namespace HomeBankingMindHub.Controllers
         }
 
         [HttpGet("current")]
-        [Authorize(Policy = "ClientOnly")]
+       // [Authorize(Policy = "ClientOnly")]
         public IActionResult GetCurrent()
         {
             try
@@ -242,8 +244,6 @@ namespace HomeBankingMindHub.Controllers
                     return StatusCode(403, "Apellido inválido");
                 }
 
-                //buscamos si ya existe el usuario
-                //Client user = _clientRepository.FindByEmail(client.Email);
 
                 if (_clientRepository.ExistsByEmail(client.Email))
                 {
@@ -294,7 +294,7 @@ namespace HomeBankingMindHub.Controllers
                 {
                     numAleatorio = "VIN-" + NumberGenerator.GenerarNumero(0, 100000000);
 
-                } while (client.Accounts.Any(ac => ac.Number == numAleatorio));
+                } while (_accountRepository.ExistsByNumber(numAleatorio));
 
                 //Agrego la cuenta al cliente
                 Account newAccount = new Account
@@ -305,7 +305,7 @@ namespace HomeBankingMindHub.Controllers
                     Balance = 0
                 };
 
-                _clientRepository.Save(client);
+                _accountRepository.Save(newAccount);
                 return StatusCode(201, "Cuenta creada");
             }
             catch (Exception ex)
@@ -316,7 +316,7 @@ namespace HomeBankingMindHub.Controllers
 
         [HttpPost("current/cards")]
         [Authorize(Policy = "ClientOnly")]
-        public IActionResult PostCard([FromBody] Card card)
+        public IActionResult PostCard([FromBody] CardCreateDTO cardCreateDTO)
         {
             try
             {
@@ -334,44 +334,44 @@ namespace HomeBankingMindHub.Controllers
                     return StatusCode(403, "No puedes tener mas de 6 tarjetas");
                 }
 
-                //CardType typeCardEnum = (CardType)card.Type;
-                CardType debito = (CardType)Enum.Parse(typeof(CardType), 1.ToString());
-                CardType credito = (CardType)Enum.Parse(typeof(CardType), 0.ToString());
+                CardType cardType = (CardType)Enum.Parse(typeof(CardType), cardCreateDTO.type);
+                CardColor cardColor = (CardColor)Enum.Parse(typeof(CardColor), cardCreateDTO.color);
 
-                if ((client.Cards.Count(c => c.Type == debito) == 3) || (client.Cards.Count(c => c.Type == credito) == 3))
+                if (client.Cards.Count(c => c.Type == cardType) == 3)
                 {
-                    return StatusCode(403, $"Ya tiene el maximo de tarjetas de {card.Type}");
+                    return StatusCode(403, $"Ya tiene el maximo de tarjetas de {cardCreateDTO.type}");
                 }
 
-                if (client.Cards.Any(c => c.Type == card.Type && c.Color == card.Color))
+                if (client.Cards.Where(c => c.Type == cardType).Any(c => c.Color == cardColor))
                 {
-                    return StatusCode(403, $"Ya tiene una tarjeta del tipo {card.Type} y del color {card.Color}");
+                    return StatusCode(403, $"Ya tiene una tarjeta del tipo {cardCreateDTO.type} y del color {cardCreateDTO.color}");
                 }
 
                 int cvvAleatorio = NumberGenerator.GenerarNumero(0, 1000);
+                string cvvFormateado = cvvAleatorio.ToString("D3");
 
                 string cardNumberAleatorio;
                 do
                 {
-                    cardNumberAleatorio = NumberGenerator.GenerarNumero(0, 1000000).ToString(); //cambiar numero
+                    cardNumberAleatorio = NumberGenerator.GenerarNumero(000000000000000, 10000000000000000).ToString("D16"); 
 
                 } while (_cardRepository.ExistsByCardHolder(cardNumberAleatorio));
-
+                string cardNumberFormateado = cardNumberAleatorio.Insert(4, "-").Insert(9, "-").Insert(14, "-");
 
                 //Agrego la cuenta al cliente
                 Card newCard = new Card
                 {
                     ClientId = client.Id,
                     CardHolder = client.FirstName + client.LastName,
-                    Type = card.Type,
-                    Color = card.Color,
-                    Number = cardNumberAleatorio,
-                    Cvv = cvvAleatorio,
+                    Type = cardType,
+                    Color = cardColor,
+                    Number = cardNumberFormateado,
+                    Cvv = int.Parse(cvvFormateado),
                     FromDate = DateTime.Now,
                     ThruDate = DateTime.Now.AddYears(5),
                 };
         
-                _clientRepository.Save(client);
+                _cardRepository.Save(newCard);
                 return StatusCode(201, "Tarjeta agregada");
             }
             catch (Exception ex)
