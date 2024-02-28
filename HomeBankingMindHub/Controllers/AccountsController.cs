@@ -120,11 +120,6 @@ namespace HomeBankingMindHub.Controllers
 
                 var account = _accountRepository.FindById(id);
 
-                if (account.ClientId.ToString() != User.FindFirst("Id").Value)
-                {
-                    return Unauthorized();
-                }
-
                 if (account == null)
 
                 {
@@ -133,6 +128,10 @@ namespace HomeBankingMindHub.Controllers
 
                 }
 
+                if (account.ClientId.ToString() != User.FindFirst("Id").Value)
+                {
+                    return Unauthorized();
+                }
 
 
                 var accountDTO = new AccountDTO

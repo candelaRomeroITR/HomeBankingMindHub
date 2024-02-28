@@ -16,11 +16,13 @@ namespace HomeBankingMindHub.Controllers
     {
 
         private IClientRepository _clientRepository;
-        public ClientsController(IClientRepository clientRepository)
+        private ICardRepository _cardRepository;
+        public ClientsController(IClientRepository clientRepository, ICardRepository cardRepository)
         {
             _clientRepository = clientRepository;
+            _cardRepository = cardRepository;
         }
-
+     
         [HttpGet]
         [Authorize(Policy = "ClientOnly")]
         public IActionResult Get()
@@ -266,7 +268,7 @@ namespace HomeBankingMindHub.Controllers
             }
         }
 
-        [HttpPost]
+        [HttpPost("current/accounts")]
         [Authorize(Policy = "ClientOnly")]
         public IActionResult PostAccount() 
         {
@@ -280,12 +282,12 @@ namespace HomeBankingMindHub.Controllers
                 }
 
                 // VERIFICAR QUE NO TENGA 3 CUENTAS CREADAS
-                Client client = _clientRepository.FindByEmail(email);                
-                if (client.Accounts.Count >= 3)
+                Client client = _clientRepository.FindByEmail(email);
+                if (client.Accounts.Count == 3)
                 {
                     return StatusCode(403, "No puedes tener mas de 3 cuentas");
                 }
-                
+
                 //VERIFICAR NUM CUENTA NO EXISTA
                 string numAleatorio;
                 do
@@ -295,9 +297,9 @@ namespace HomeBankingMindHub.Controllers
                 } while (client.Accounts.Any(ac => ac.Number == numAleatorio));
 
                 //Agrego la cuenta al cliente
-                new Account
+                Account newAccount = new Account
                 {
-                    ClientId = client.Id,    
+                    ClientId = client.Id,
                     Number = numAleatorio,
                     CreationDate = DateTime.Now,
                     Balance = 0
@@ -312,7 +314,7 @@ namespace HomeBankingMindHub.Controllers
             }
         }
 
-        [HttpPost]
+        [HttpPost("current/cards")]
         [Authorize(Policy = "ClientOnly")]
         public IActionResult PostCard([FromBody] Card card)
         {
@@ -325,36 +327,49 @@ namespace HomeBankingMindHub.Controllers
                     return Forbid();
                 }
 
-                Client client = _clientRepository.FindByEmail(email);
-
                 // VERIFICAR MAX TARJETAS - COLORES
-                //Client client = _clientRepository.FindByEmail(email);
-                //if (client.Accounts.Count >= 3)
-                //{
-                //    return StatusCode(403, "No puedes tener mas de 3 cuentas");
-                //}
+                Client client = _clientRepository.FindByEmail(email);
+                if (client.Cards.Count == 6)
+                {
+                    return StatusCode(403, "No puedes tener mas de 6 tarjetas");
+                }
+
+                //CardType typeCardEnum = (CardType)card.Type;
+                CardType debito = (CardType)Enum.Parse(typeof(CardType), 1.ToString());
+                CardType credito = (CardType)Enum.Parse(typeof(CardType), 0.ToString());
+
+                if ((client.Cards.Count(c => c.Type == debito) == 3) || (client.Cards.Count(c => c.Type == credito) == 3))
+                {
+                    return StatusCode(403, $"Ya tiene el maximo de tarjetas de {card.Type}");
+                }
+
+                if (client.Cards.Any(c => c.Type == card.Type && c.Color == card.Color))
+                {
+                    return StatusCode(403, $"Ya tiene una tarjeta del tipo {card.Type} y del color {card.Color}");
+                }
 
                 int cvvAleatorio = NumberGenerator.GenerarNumero(0, 1000);
 
-                string cardNumber;
+                string cardNumberAleatorio;
                 do
                 {
-                    cardNumber = NumberGenerator.GenerarNumero(0, 10000).ToString(); //cambiar numero
-                } while()
-                
-                
+                    cardNumberAleatorio = NumberGenerator.GenerarNumero(0, 1000000).ToString(); //cambiar numero
+
+                } while (_cardRepository.ExistsByCardHolder(cardNumberAleatorio));
+
+
                 //Agrego la cuenta al cliente
-                new Card
+                Card newCard = new Card
                 {
                     ClientId = client.Id,
                     CardHolder = client.FirstName + client.LastName,
                     Type = card.Type,
                     Color = card.Color,
-                    Number = 16 digitos, no se repite,
+                    Number = cardNumberAleatorio,
                     Cvv = cvvAleatorio,
                     FromDate = DateTime.Now,
                     ThruDate = DateTime.Now.AddYears(5),
-                }
+                };
         
                 _clientRepository.Save(client);
                 return StatusCode(201, "Tarjeta agregada");
