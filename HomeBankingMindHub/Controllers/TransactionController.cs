@@ -92,6 +92,13 @@ namespace HomeBankingMindHub.Controllers
 
                 _transactionRepository.Save(newTransactionOrigen);
                 _transactionRepository.Save(newTransactionDestino);
+
+                accountOrigen.Balance -= transferDTO.amount;
+                accountDestino.Balance += transferDTO.amount;
+
+                _accountRepository.Save(accountOrigen);
+                _accountRepository.Save(accountDestino);
+
                 return StatusCode(201, "Transaccion creada");
                 
             } 

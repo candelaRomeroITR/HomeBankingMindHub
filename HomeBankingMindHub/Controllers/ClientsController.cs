@@ -287,22 +287,15 @@ namespace HomeBankingMindHub.Controllers
                     return Forbid();
                 }
 
-                var clientDTO = new ClientDTO
+                List<AccountDTO> accounts = client.Accounts.Select(account => new AccountDTO
                 {
-                    Id = client.Id,
-                    Email = client.Email,
-                    FirstName = client.FirstName,
-                    LastName = client.LastName,
-                    Accounts = client.Accounts.Select(ac => new AccountDTO
-                    {
-                        Id = ac.Id,
-                        Balance = ac.Balance,
-                        CreationDate = ac.CreationDate,
-                        Number = ac.Number
-                    }).ToList(),
-                };
+                    Id = account.Id,
+                    Number = account.Number,
+                    CreationDate = account.CreationDate,
+                    Balance = account.Balance,            
+                }).ToList();
 
-                return Ok(clientDTO);
+                return Ok(accounts);
             }
             catch (Exception ex)
             {
@@ -375,26 +368,19 @@ namespace HomeBankingMindHub.Controllers
                     return Forbid();
                 }
 
-                var clientDTO = new ClientDTO
+                List<CardDTO> cards = client.Cards.Select(card => new CardDTO
                 {
-                    Id = client.Id,
-                    Email = client.Email,
-                    FirstName = client.FirstName,
-                    LastName = client.LastName,
-                    Cards = client.Cards.Select(c => new CardDTO
-                    {
-                        Id = c.Id,
-                        CardHolder = c.CardHolder,
-                        Color = c.Color.ToString(),
-                        Cvv = c.Cvv,
-                        FromDate = c.FromDate,
-                        Number = c.Number,
-                        ThruDate = c.ThruDate,
-                        Type = c.Type.ToString(),
-                    }).ToList()
-                };
+                    Id = card.Id,
+                    CardHolder = card.CardHolder,
+                    Type = card.Type.ToString(),
+                    Color = card.Color.ToString(),
+                    Number = card.Number,
+                    Cvv = card.Cvv,
+                    FromDate = card.FromDate,
+                    ThruDate = card.ThruDate,
+                }).ToList();
 
-                return Ok(clientDTO);
+                return Ok(cards);
             }
             catch (Exception ex)
             {
