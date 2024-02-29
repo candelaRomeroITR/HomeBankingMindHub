@@ -8,5 +8,6 @@ namespace HomeBankingMindHub.Repositories
         Account FindById(long id);
         bool ExistsByNumber(string number);
         void Save(Account account);
+        Account FindByNumber(string number);
     }
 }
