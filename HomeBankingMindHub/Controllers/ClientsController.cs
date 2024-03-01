@@ -250,12 +250,29 @@ namespace HomeBankingMindHub.Controllers
                     return StatusCode(403, "Email está en uso");
                 }
 
+                string numAleatorio;
+                do
+                {
+                    numAleatorio = "VIN-" + NumberGenerator.GenerarNumero(0, 100000000);
+
+                } while (_accountRepository.ExistsByNumber(numAleatorio));
+
                 Client newClient = new Client
                 {
                     Email = client.Email,
                     Password = client.Password,
                     FirstName = client.FirstName,
                     LastName = client.LastName,
+                    Accounts = new List<Account> 
+                    { 
+                        new Account
+                        {
+                            ClientId = client.Id,
+                            Number = numAleatorio,
+                            CreationDate = DateTime.Now,
+                            Balance = 0
+                        }
+                    }
                 };
 
                 _clientRepository.Save(newClient);
@@ -425,18 +442,20 @@ namespace HomeBankingMindHub.Controllers
                 string cvvFormateado = cvvAleatorio.ToString("D3");
 
                 string cardNumberAleatorio;
+                string cardNumberFormateado;
                 do
                 {
                     cardNumberAleatorio = NumberGenerator.GenerarNumero(000000000000000, 10000000000000000).ToString("D16"); 
+                    cardNumberFormateado = cardNumberAleatorio.Insert(4, "-").Insert(9, "-").Insert(14, "-");
 
-                } while (_cardRepository.ExistsByCardHolder(cardNumberAleatorio));
-                string cardNumberFormateado = cardNumberAleatorio.Insert(4, "-").Insert(9, "-").Insert(14, "-");
+                } while (_cardRepository.ExistsByCardHolder(cardNumberFormateado));
+                
 
                 //Agrego la cuenta al cliente
                 Card newCard = new Card
                 {
                     ClientId = client.Id,
-                    CardHolder = client.FirstName + client.LastName,
+                    CardHolder = $"{client.FirstName} {client.LastName}",
                     Type = cardType,
                     Color = cardColor,
                     Number = cardNumberFormateado,
