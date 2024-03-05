@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using System.Transactions;
 
 namespace HomeBankingMindHub.Controllers
 {
@@ -57,91 +58,95 @@ namespace HomeBankingMindHub.Controllers
         [HttpPost]
         public IActionResult PostLoans([FromBody] LoanApplicationDTO loanApplicationDTO)
         {
-            try
+            using(var scope = new TransactionScope())
             {
-                if (loanApplicationDTO == null)
-                {
-                    return Forbid();
-                }
-                //obtener info cliente autenticado
-                string email = User.FindFirst("Client") != null ? User.FindFirst("Client").Value : string.Empty;
-                if (email == string.Empty)
-                {
-                    return Forbid();
-                }
-
-                if (loanApplicationDTO.LoanId == 0 || loanApplicationDTO.Amount == 0 || loanApplicationDTO.Payments == null || loanApplicationDTO.ToAccountNumber == null)
-                {
-                    return StatusCode(403, "Hay datos nulos");
-                }
-
-                if (loanApplicationDTO.Amount < 0)
-                {
-                    return StatusCode(403, "El monto debe ser positivo");
-                }
-
-                Loan loan = _loanRepository.FindById(loanApplicationDTO.LoanId);
-                List<int> cuotasDisponibles = loan.Payments.Split(',').Select(int.Parse).ToList();
-                int cuotaSeleccionada;
-                if(int.TryParse(loanApplicationDTO.Payments, out cuotaSeleccionada))
-                {
-                    if (!cuotasDisponibles.Contains(cuotaSeleccionada))
+                try
+                    {
+                        if (loanApplicationDTO == null)
                         {
-                        return StatusCode(403, "Cuota seleccionada no disponible para este prestamo");
+                            return Forbid();
                         }
+                        //obtener info cliente autenticado
+                        string email = User.FindFirst("Client") != null ? User.FindFirst("Client").Value : string.Empty;
+                        if (email == string.Empty)
+                        {
+                            return Forbid();
+                        }
+
+                        if (loanApplicationDTO.LoanId == 0 || loanApplicationDTO.Amount == 0 || loanApplicationDTO.Payments == null || loanApplicationDTO.ToAccountNumber == null)
+                        {
+                            return StatusCode(403, "Hay datos nulos");
+                        }
+
+                        if (loanApplicationDTO.Amount < 0)
+                        {
+                            return StatusCode(403, "El monto debe ser positivo");
+                        }
+
+                        Loan loan = _loanRepository.FindById(loanApplicationDTO.LoanId);
+                        List<int> cuotasDisponibles = loan.Payments.Split(',').Select(int.Parse).ToList();
+                        int cuotaSeleccionada;
+                        if(int.TryParse(loanApplicationDTO.Payments, out cuotaSeleccionada))
+                        {
+                            if (!cuotasDisponibles.Contains(cuotaSeleccionada))
+                                {
+                                return StatusCode(403, "Cuota seleccionada no disponible para este prestamo");
+                                }
+                        }
+
+                        if(loan.MaxAmount < loanApplicationDTO.Amount)
+                        {
+                            return StatusCode(403, $"El monto del prestamo no puede ser mayor a {loan.MaxAmount}");
+                        }
+
+                        if (!_accountRepository.ExistsByNumber(loanApplicationDTO.ToAccountNumber))
+                        {
+                            return StatusCode(403, "Cuenta destino inexistente");
+                        }
+
+                        Client client = _clientRepository.FindByEmail(email);
+                        if(!client.Accounts.Any(account => account.Number == loanApplicationDTO.ToAccountNumber))
+                        {
+                            return StatusCode(403, "La cuenta destino no le pertenece");
+                        }
+
+                        ClientLoan newClientLoan = new ClientLoan
+                        {
+                            Amount = loanApplicationDTO.Amount + (loanApplicationDTO.Amount * 0.2),
+                            Payments = loanApplicationDTO.Payments,
+                            ClientId = client.Id,
+                            LoanId = loanApplicationDTO.LoanId,        
+                        };
+
+                        _clientLoanRepository.Save(newClientLoan);
+
+                        Account account = _accountRepository.FindByNumber(loanApplicationDTO.ToAccountNumber);
+                        long cuentaDestino = account.Id;
+
+                        Models.Transaction newTransaction = new Models.Transaction
+                        {
+                            AccountId = cuentaDestino,
+                            Type = TransactionType.CREDIT,
+                            Amount = loanApplicationDTO.Amount,
+                            Description = $"{loan.Name} loan approved", 
+                            Date = DateTime.Now,
+                        };
+
+                        _transactionRepository.Save(newTransaction);
+
+                        account.Balance += loanApplicationDTO.Amount;
+
+                        _accountRepository.Save(account);
+                        scope.Complete();
+                        return Ok();
+
+                    }
+                    catch (Exception ex)
+                    {
+                        return StatusCode(500, ex.Message);
+                    }
                 }
-
-                if(loan.MaxAmount < loanApplicationDTO.Amount)
-                {
-                    return StatusCode(403, $"El monto del prestamo no puede ser mayor a {loan.MaxAmount}");
-                }
-
-                if (!_accountRepository.ExistsByNumber(loanApplicationDTO.ToAccountNumber))
-                {
-                    return StatusCode(403, "Cuenta destino inexistente");
-                }
-
-                Client client = _clientRepository.FindByEmail(email);
-                if(!client.Accounts.Any(account => account.Number == loanApplicationDTO.ToAccountNumber))
-                {
-                    return StatusCode(403, "La cuenta destino no le pertenece");
-                }
-
-                ClientLoan newClientLoan = new ClientLoan
-                {
-                    Amount = loanApplicationDTO.Amount + (loanApplicationDTO.Amount * 0.2),
-                    Payments = loanApplicationDTO.Payments,
-                    ClientId = client.Id,
-                    LoanId = loanApplicationDTO.LoanId,        
-                };
-
-                _clientLoanRepository.Save(newClientLoan);
-
-                Account account = _accountRepository.FindByNumber(loanApplicationDTO.ToAccountNumber);
-                long cuentaDestino = account.Id;
-
-                Transaction newTransaction = new Transaction
-                {
-                    AccountId = cuentaDestino,
-                    Type = TransactionType.CREDIT,
-                    Amount = loanApplicationDTO.Amount,
-                    Description = $"{loan.Name} loan approved", 
-                    Date = DateTime.Now,
-                };
-
-                _transactionRepository.Save(newTransaction);
-
-                account.Balance += loanApplicationDTO.Amount;
-
-                _accountRepository.Save(account);
-                
-                return StatusCode(201, "Prestamo realizado");
-
             }
-            catch (Exception ex)
-            {
-                return StatusCode(500, ex.Message);
-            }
-        }
+            
     }
 }
