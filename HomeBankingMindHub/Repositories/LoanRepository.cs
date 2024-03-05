@@ -19,5 +19,6 @@ namespace HomeBankingMindHub.Repositories
             return FindByCondition(loan => loan.Id == id)
                 .FirstOrDefault();
         }
+
     }
 }
