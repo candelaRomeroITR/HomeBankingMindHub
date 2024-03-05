@@ -28,25 +28,26 @@ namespace HomeBankingMindHub.Controllers
             {
                 try
                 {
-                    //verifico que los parametros no esten vacios
                     if (transferDTO.amount == 0 || transferDTO.description == null || transferDTO.fromAccountNumber == null || transferDTO.toAccountNumber == null)
                     {
                         return StatusCode(403, "Hay datos nulos");
                     }
 
-                    //verifico que los numeros de cuenta no sean iguales
+                    if (transferDTO.amount < 0)
+                    {
+                        return StatusCode(403, "El monto debe ser positivo");
+                    }
+
                     if (transferDTO.fromAccountNumber.Equals(transferDTO.toAccountNumber))
                     {
                         return StatusCode(403, "La cuenta origen y la cuenta destino no pueden ser iguales");
                     }
 
-                    //verifico que exista la cuenta de origen
                     if (!_accountRepository.ExistsByNumber(transferDTO.fromAccountNumber))
                     {
                         return StatusCode(403, "La cuenta origen no existe");
                     }
 
-                    //verifico que la cuenta origen sea la del cliente autenticado
                     string email = User.FindFirst("Client") != null ? User.FindFirst("Client").Value : string.Empty;
                     if (email == string.Empty)
                     {
@@ -59,13 +60,11 @@ namespace HomeBankingMindHub.Controllers
                         return StatusCode(403, $"La cuenta {transferDTO.fromAccountNumber} no le pertenece");
                     }
 
-                    //verifico que la cuenta destino exista
                     if (!_accountRepository.ExistsByNumber(transferDTO.toAccountNumber))
                     {
                         return StatusCode(403, $"La cuenta destino no existe");
                     }
 
-                    //verifico cuenta origen tenga el monto a transferir disponible
                     Account accountOrigen = _accountRepository.FindByNumber(transferDTO.fromAccountNumber);
                     Account accountDestino = _accountRepository.FindByNumber(transferDTO.toAccountNumber);
 
@@ -74,7 +73,6 @@ namespace HomeBankingMindHub.Controllers
                         return StatusCode(403, "No tiene suficientes fondos para realizar la transaccion");
                     }
 
-                    //crear transacciones 
                     Models.Transaction newTransactionOrigen = new Models.Transaction
                     {
                         AccountId = accountOrigen.Id,
