@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using System;
 using HomeBankingMindHub.Models;
 using HomeBankingMindHub.dtos;
+using HomeBankingMindHub.Services;
 
 namespace HomeBankingMindHub.Controllers
 {
@@ -17,10 +18,10 @@ namespace HomeBankingMindHub.Controllers
     [ApiController]
     public class AuthController : ControllerBase
     {
-        private IClientRepository _clientRepository;
-        public AuthController(IClientRepository clientRepository)
+        private IClientService _clientService;
+        public AuthController(IClientService clientService)
         {
-            _clientRepository = clientRepository;
+            _clientService = clientService;
         }
 
         [HttpPost("login")]
@@ -28,7 +29,7 @@ namespace HomeBankingMindHub.Controllers
         {
             try
             {
-                Client user = _clientRepository.FindByEmail(client.Email);
+                Client user = _clientService.getClientByEmail(client.Email);
                 if (user == null || !String.Equals(user.Password, client.Password))
                     return Unauthorized();
 
