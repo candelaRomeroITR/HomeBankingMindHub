@@ -9,5 +9,13 @@
         public Client Client { get; set; }
         public long ClientId { get; set; }
         public ICollection<Transaction> Transactions { get; set; }
+        public Account() { }
+        public Account(Client client, string numAleatorio)
+        {
+            ClientId = client.Id;
+            Number = numAleatorio;
+            CreationDate = DateTime.Now;
+            Balance = 0;
+        }
     }
 }

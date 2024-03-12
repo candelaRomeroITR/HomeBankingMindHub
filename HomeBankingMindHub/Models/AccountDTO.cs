@@ -1,5 +1,5 @@
 ﻿using HomeBankingMindHub.Models;
-using System;
+using Microsoft.IdentityModel.Tokens;
 
 namespace HomeBankingMindHub.dtos
 
@@ -15,6 +15,26 @@ namespace HomeBankingMindHub.dtos
         public double Balance { get; set; }
 
         public ICollection<TransactionDTO> Transactions { get; set; }
+        public AccountDTO() { }
+        public AccountDTO(Account account)
+        {
+            Id = account.Id;
+            Number = account.Number;
+            CreationDate = account.CreationDate;
+            Balance = account.Balance;
+            Transactions = account.Transactions.IsNullOrEmpty()? null : account.Transactions.Select(transaction => new TransactionDTO(transaction)).ToList();
+      
+        }
+        public AccountDTO(Client client)
+        {
+            List<AccountDTO> accounts = client.Accounts.Select(account => new AccountDTO
+            {
+                Id = account.Id,
+                Number = account.Number,
+                CreationDate = account.CreationDate,
+                Balance = account.Balance,
+            }).ToList();
+        }
 
     }
 

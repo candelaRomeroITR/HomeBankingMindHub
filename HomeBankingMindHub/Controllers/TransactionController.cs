@@ -1,5 +1,6 @@
 ﻿using HomeBankingMindHub.Models;
 using HomeBankingMindHub.Repositories;
+using HomeBankingMindHub.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System.Transactions;
@@ -11,14 +12,14 @@ namespace HomeBankingMindHub.Controllers
     public class TransactionsController : ControllerBase
     {
         private IClientRepository _clientRepository;
-        private IAccountRepository _accountRepository;
         private ITransactionRepository _transactionRepository;
+        private IAccountService _accountService;
 
-        public TransactionsController(IClientRepository clientRepository, IAccountRepository accountRepository, ITransactionRepository transactionRepository)
+        public TransactionsController(IClientRepository clientRepository, ITransactionRepository transactionRepository, IAccountService accountService)
         {
             _clientRepository = clientRepository;
-            _accountRepository = accountRepository;
             _transactionRepository = transactionRepository;
+            _accountService = accountService;
         }
 
         [HttpPost]
@@ -43,7 +44,7 @@ namespace HomeBankingMindHub.Controllers
                         return StatusCode(403, "La cuenta origen y la cuenta destino no pueden ser iguales");
                     }
 
-                    if (!_accountRepository.ExistsByNumber(transferDTO.fromAccountNumber))
+                    if (!_accountService.accountExistsByNumber(transferDTO.fromAccountNumber))
                     {
                         return StatusCode(403, "La cuenta origen no existe");
                     }
@@ -60,13 +61,13 @@ namespace HomeBankingMindHub.Controllers
                         return StatusCode(403, $"La cuenta {transferDTO.fromAccountNumber} no le pertenece");
                     }
 
-                    if (!_accountRepository.ExistsByNumber(transferDTO.toAccountNumber))
+                    if (!_accountService.accountExistsByNumber(transferDTO.toAccountNumber))
                     {
                         return StatusCode(403, $"La cuenta destino no existe");
                     }
 
-                    Account accountOrigen = _accountRepository.FindByNumber(transferDTO.fromAccountNumber);
-                    Account accountDestino = _accountRepository.FindByNumber(transferDTO.toAccountNumber);
+                    Account accountOrigen = _accountService.getAccountByNumber(transferDTO.fromAccountNumber);
+                    Account accountDestino = _accountService.getAccountByNumber(transferDTO.toAccountNumber);
 
                     if (transferDTO.amount > accountOrigen.Balance)
                     {
@@ -97,8 +98,8 @@ namespace HomeBankingMindHub.Controllers
                     accountOrigen.Balance -= transferDTO.amount;
                     accountDestino.Balance += transferDTO.amount;
 
-                    _accountRepository.Save(accountOrigen);
-                    _accountRepository.Save(accountDestino);
+                    _accountService.saveAccount(accountOrigen);
+                    _accountService.saveAccount(accountDestino);
 
                     scope.Complete();
                     return Ok();

@@ -1,4 +1,6 @@
-﻿namespace HomeBankingMindHub.Models
+﻿using Microsoft.VisualBasic;
+
+namespace HomeBankingMindHub.Models
 {
     public class Card
     {
@@ -12,5 +14,17 @@
         public DateTime ThruDate { get; set; }
         public Client Client { get; set; }
         public long ClientId { get; set; }
+        public Card() { }
+        public Card(Client client, string cvvFormateado, string cardNumberFormateado, CardType cardType, CardColor cardColor)
+        {
+            ClientId = client.Id;
+            CardHolder = $"{client.FirstName} {client.LastName}";
+            Type = cardType;
+            Color = cardColor;
+            Number = cardNumberFormateado;
+            Cvv = int.Parse(cvvFormateado);
+            FromDate = DateTime.Now;
+            ThruDate = DateTime.Now.AddYears(5);
+        }
     }
 }

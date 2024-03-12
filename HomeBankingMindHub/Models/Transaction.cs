@@ -10,5 +10,6 @@
         public DateTime Date { get; set; }
         public Account Account { get; set; }
         public long AccountId { get; set; }
+
     }
 }
