@@ -20,5 +20,11 @@ namespace HomeBankingMindHub.Repositories
                 .FirstOrDefault();
         }
 
+        public void Save(Loan loan)
+        {
+            Create(loan);
+            SaveChanges();
+        }
+
     }
 }

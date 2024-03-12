@@ -1,9 +1,5 @@
-﻿using HomeBankingMindHub.dtos;
-using HomeBankingMindHub.Models;
-using HomeBankingMindHub.Repositories;
-using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
+﻿using HomeBankingMindHub.Models;
+using HomeBankingMindHub.Services;
 using Microsoft.AspNetCore.Mvc;
 using System.Transactions;
 
@@ -13,19 +9,18 @@ namespace HomeBankingMindHub.Controllers
     [ApiController]
     public class LoansController : ControllerBase
     {
-        private IClientRepository _clientRepository;
-        private IAccountRepository _accountRepository;
-        private ILoanRepository _loanRepository;
-        private IClientLoanRepository _clientLoanRepository;
-        private ITransactionRepository _transactionRepository;
+        private ILoanService _loanService;
+        private IAccountService _accountService;
+        private IClientService _clientService;
+        private ITransactionService _transactionService;
 
-        public LoansController(IClientRepository clientRepository, IAccountRepository accountRepository, ILoanRepository loanRepository, IClientLoanRepository clientLoanRepository, ITransactionRepository transactionRepository)
+        public LoansController(ILoanService loanService, IAccountService accountService, 
+            IClientService clientService, ITransactionService transactionService)
         {
-            _clientRepository = clientRepository;
-            _accountRepository = accountRepository;
-            _loanRepository = loanRepository;
-            _clientLoanRepository = clientLoanRepository;
-            _transactionRepository = transactionRepository;
+            _loanService = loanService;
+            _accountService = accountService;
+            _clientService = clientService;
+            _transactionService = transactionService;
         }
 
         [HttpGet]
@@ -33,21 +28,7 @@ namespace HomeBankingMindHub.Controllers
         {
             try
             {
-                var loans = _loanRepository.GetAllLoans();
-                var loansDTO = new List<LoanDTO>();
-
-                foreach (Loan loan in loans)
-                {
-                    var newLoanDTO = new LoanDTO
-                    {
-                        Id = loan.Id,
-                        Name = loan.Name,
-                        MaxAmount = loan.MaxAmount,
-                        Payments = loan.Payments,
-                    };
-                    loansDTO.Add(newLoanDTO);
-                }
-                return Ok(loansDTO);
+                return Ok(_loanService.getAllLoans());
             }
             catch (Exception ex)
             {
@@ -83,7 +64,7 @@ namespace HomeBankingMindHub.Controllers
                             return StatusCode(403, "El monto debe ser positivo");
                         }
 
-                        Loan loan = _loanRepository.FindById(loanApplicationDTO.LoanId);
+                        Loan loan = _loanService.getLoanById(loanApplicationDTO.LoanId);
                         List<int> cuotasDisponibles = loan.Payments.Split(',').Select(int.Parse).ToList();
                         int cuotaSeleccionada;
                         if(int.TryParse(loanApplicationDTO.Payments, out cuotaSeleccionada))
@@ -99,44 +80,24 @@ namespace HomeBankingMindHub.Controllers
                             return StatusCode(403, $"El monto del prestamo no puede ser mayor a {loan.MaxAmount}");
                         }
 
-                        if (!_accountRepository.ExistsByNumber(loanApplicationDTO.ToAccountNumber))
+                        if (!_accountService.accountExistsByNumber(loanApplicationDTO.ToAccountNumber))
                         {
                             return StatusCode(403, "Cuenta destino inexistente");
                         }
 
-                        Client client = _clientRepository.FindByEmail(email);
+                        Client client = _clientService.getClientByEmail(email);
                         if(!client.Accounts.Any(account => account.Number == loanApplicationDTO.ToAccountNumber))
                         {
                             return StatusCode(403, "La cuenta destino no le pertenece");
                         }
 
-                        ClientLoan newClientLoan = new ClientLoan
-                        {
-                            Amount = loanApplicationDTO.Amount + (loanApplicationDTO.Amount * 0.2),
-                            Payments = loanApplicationDTO.Payments,
-                            ClientId = client.Id,
-                            LoanId = loanApplicationDTO.LoanId,        
-                        };
+                        ClientLoan newClientLoan = _loanService.createNewClientLoan(client, loanApplicationDTO);
 
-                        _clientLoanRepository.Save(newClientLoan);
-
-                        Account account = _accountRepository.FindByNumber(loanApplicationDTO.ToAccountNumber);
+                        Account account = _accountService.getAccountByNumber(loanApplicationDTO.ToAccountNumber);
                         long cuentaDestino = account.Id;
 
-                        Models.Transaction newTransaction = new Models.Transaction
-                        {
-                            AccountId = cuentaDestino,
-                            Type = TransactionType.CREDIT,
-                            Amount = loanApplicationDTO.Amount,
-                            Description = $"{loan.Name} loan approved", 
-                            Date = DateTime.Now,
-                        };
-
-                        _transactionRepository.Save(newTransaction);
-
-                        account.Balance += loanApplicationDTO.Amount;
-
-                        _accountRepository.Save(account);
+                        _transactionService.createTransactionLoan(account, loanApplicationDTO, loan);
+                     
                         scope.Complete();
                         return Ok();
 

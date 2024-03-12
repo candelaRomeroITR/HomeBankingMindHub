@@ -11,15 +11,15 @@ namespace HomeBankingMindHub.Controllers
     [ApiController]
     public class TransactionsController : ControllerBase
     {
-        private IClientRepository _clientRepository;
-        private ITransactionRepository _transactionRepository;
         private IAccountService _accountService;
+        private ITransactionService _transactionService;
+        private IClientService _clientService;
 
-        public TransactionsController(IClientRepository clientRepository, ITransactionRepository transactionRepository, IAccountService accountService)
+        public TransactionsController(IAccountService accountService, ITransactionService transactionService, IClientService clientService)
         {
-            _clientRepository = clientRepository;
-            _transactionRepository = transactionRepository;
             _accountService = accountService;
+            _transactionService = transactionService;
+            _clientService = clientService;
         }
 
         [HttpPost]
@@ -55,7 +55,7 @@ namespace HomeBankingMindHub.Controllers
                         return Forbid();
                     }
 
-                    Client client = _clientRepository.FindByEmail(email);
+                    Client client = _clientService.getClientByEmail(email);
                     if (!client.Accounts.Any(account => account.Number.ToUpper() == transferDTO.fromAccountNumber.ToUpper()))
                     {
                         return StatusCode(403, $"La cuenta {transferDTO.fromAccountNumber} no le pertenece");
@@ -74,32 +74,7 @@ namespace HomeBankingMindHub.Controllers
                         return StatusCode(403, "No tiene suficientes fondos para realizar la transaccion");
                     }
 
-                    Models.Transaction newTransactionOrigen = new Models.Transaction
-                    {
-                        AccountId = accountOrigen.Id,
-                        Type = TransactionType.DEBIT,
-                        Amount = transferDTO.amount,
-                        Description = transferDTO.fromAccountNumber + transferDTO.description,
-                        Date = DateTime.Now
-                    };
-
-                    Models.Transaction newTransactionDestino = new Models.Transaction
-                    {
-                        AccountId = accountDestino.Id,
-                        Type = TransactionType.CREDIT,
-                        Amount = transferDTO.amount,
-                        Description = transferDTO.toAccountNumber + transferDTO.description,
-                        Date = DateTime.Now
-                    };
-
-                    _transactionRepository.Save(newTransactionOrigen);
-                    _transactionRepository.Save(newTransactionDestino);
-
-                    accountOrigen.Balance -= transferDTO.amount;
-                    accountDestino.Balance += transferDTO.amount;
-
-                    _accountService.saveAccount(accountOrigen);
-                    _accountService.saveAccount(accountDestino);
+                    _transactionService.createTransaction(transferDTO);
 
                     scope.Complete();
                     return Ok();

@@ -10,6 +10,23 @@
         public DateTime Date { get; set; }
         public Account Account { get; set; }
         public long AccountId { get; set; }
-
+        public Transaction() { }
+        public Transaction(Account account, TransferDTO transferDTO, TransactionType type)
+        {
+            AccountId = account.Id;
+            Type = type;
+            Amount = transferDTO.amount;
+            Description = transferDTO.fromAccountNumber + transferDTO.description;
+            Date = DateTime.Now;
+        }
+        public Transaction(Account account, LoanApplicationDTO loanApplicationDTO, Loan loan)
+        {
+            AccountId = account.Id;
+            Type = TransactionType.CREDIT;
+            Amount = loanApplicationDTO.Amount;
+            Description = $"{loan.Name} loan approved";
+            Date = DateTime.Now;
+        }
+ 
     }
 }
